@@ -1,7 +1,7 @@
 # mamba-ssm
 
-Implementation of Mamba based heavily on the [mamba-minimal
-candle-example](https://github.com/huggingface/candle/tree/main/candle-examples/examples/mamba-minimal)
+Implementation of [Mamba](https://arxiv.org/abs/2312.00752) based heavily on the
+[mamba-minimal candle-example](https://github.com/huggingface/candle/tree/main/candle-examples/examples/mamba-minimal)
 and @johnma2006's [mamba-minimal](https://github.com/johnma2006/mamba-minimal)
 
 ## Running
