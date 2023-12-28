@@ -11,8 +11,8 @@
 use candle::{Module, Result, Tensor, D};
 use candle_nn::{RmsNorm, VarBuilder};
 
+use crate::nn::selective_ssm::SSM;
 use crate::nn::{conv1d, linear_no_bias, Conv1d, Linear};
-use crate::selective_ssm::SSM;
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct Config {

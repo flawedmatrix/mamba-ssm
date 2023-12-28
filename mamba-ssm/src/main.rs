@@ -22,7 +22,6 @@ use candle_transformers::generation::LogitsProcessor;
 use tokenizers::Tokenizer;
 
 mod nn;
-mod selective_ssm;
 
 struct TextGeneration {
     model: Model,
