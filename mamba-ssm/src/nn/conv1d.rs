@@ -59,7 +59,7 @@ pub fn conv1d(
 }
 
 /// Winograd transform matrices for convolution F(2,4) evaluated at points
-/// [0, 0.5, -1.5, 1.5]
+/// [0, 0.5, -1.5, 1.5] generated with the help of https://github.com/andravin/wincnn
 /// See:
 /// [1] Error Analysis and Improving the Accuracy of Winograd Convolution for Deep Neural Networks
 ///     Barbara Barabasz, Andrew Anderson, Kirk M. Soodhalter, David Gregg
