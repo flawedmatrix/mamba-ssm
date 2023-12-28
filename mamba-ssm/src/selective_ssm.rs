@@ -3,7 +3,7 @@ use candle_nn::VarBuilder;
 
 use candle::Result;
 
-use crate::primitives::{linear, linear_no_bias, Linear};
+use crate::nn::{linear, linear_no_bias, Linear};
 
 #[derive(Clone, Debug)]
 pub struct SSM {

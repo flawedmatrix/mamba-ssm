@@ -11,7 +11,7 @@
 use candle::{Module, Result, Tensor, D};
 use candle_nn::{RmsNorm, VarBuilder};
 
-use crate::primitives::{conv1d, linear_no_bias, Conv1d, Linear};
+use crate::nn::{conv1d, linear_no_bias, Conv1d, Linear};
 use crate::selective_ssm::SSM;
 
 #[derive(Debug, Clone, serde::Deserialize)]

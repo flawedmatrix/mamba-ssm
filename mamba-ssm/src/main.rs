@@ -21,7 +21,7 @@ use candle_nn::VarBuilder;
 use candle_transformers::generation::LogitsProcessor;
 use tokenizers::Tokenizer;
 
-mod primitives;
+mod nn;
 mod selective_ssm;
 
 struct TextGeneration {
