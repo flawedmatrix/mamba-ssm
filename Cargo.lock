@@ -199,7 +199,8 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 [[package]]
 name = "candle-core"
 version = "0.3.2"
-source = "git+https://github.com/huggingface/candle.git#88589d88153bef3316a13741bd12bf5e7963957a"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57433f80b510bc603fd9e52c5a15eb44a8ac70112b95b28b0ab8fb1c1f001822"
 dependencies = [
  "accelerate-src",
  "byteorder",
@@ -224,7 +225,8 @@ dependencies = [
 [[package]]
 name = "candle-kernels"
 version = "0.3.2"
-source = "git+https://github.com/huggingface/candle.git#88589d88153bef3316a13741bd12bf5e7963957a"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5aa5d745378eb85159b1d06650d0d1b14426503b327aebd469e0f1cfd306a8d3"
 dependencies = [
  "anyhow",
  "glob",
@@ -234,7 +236,8 @@ dependencies = [
 [[package]]
 name = "candle-nn"
 version = "0.3.2"
-source = "git+https://github.com/huggingface/candle.git#88589d88153bef3316a13741bd12bf5e7963957a"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "211d0a1ca744eba0259b920ce767cb22620b4d766d5bf9acc2423402da0e8be8"
 dependencies = [
  "accelerate-src",
  "candle-core",
@@ -250,7 +253,8 @@ dependencies = [
 [[package]]
 name = "candle-transformers"
 version = "0.3.2"
-source = "git+https://github.com/huggingface/candle.git#88589d88153bef3316a13741bd12bf5e7963957a"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f5b3eb1be12314656dca72d23e0e074628d4fbd8f9c8a5e628409174574cceaa"
 dependencies = [
  "accelerate-src",
  "byteorder",

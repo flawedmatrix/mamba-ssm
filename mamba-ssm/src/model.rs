@@ -88,18 +88,13 @@ impl MambaBlock {
 
 impl Module for MambaBlock {
     fn forward(&self, xs: &Tensor) -> Result<Tensor> {
-        let (_b_sz, seq_len, _dim) = xs.dims3()?;
         // Project the input to two larger inputs as per the Mamba
         // architecture in Figure 3 of the paper.
         let xs_and_res = xs.apply(&self.in_proj)?.chunk(2, D::Minus1)?;
         let (xs, res) = (&xs_and_res[0], &xs_and_res[1]);
 
         // Conv1d -> SiLU -> SSM
-        let xs = xs
-            .t()?
-            .apply(&self.conv1d)?
-            .narrow(D::Minus1, 0, seq_len)?
-            .t()?;
+        let xs = xs.apply(&self.conv1d)?;
         let xs = candle_nn::ops::silu(&xs)?;
         let xs = xs.apply(&self.ssm)?;
 
@@ -159,7 +154,7 @@ impl Model {
 
 impl Module for Model {
     fn forward(&self, input_ids: &Tensor) -> Result<Tensor> {
-        let (_b_size, seq_len) = input_ids.dims2()?;
+        let (_batch_size, seq_len) = input_ids.dims2()?;
         let mut xs = self.embedding.forward(input_ids)?;
         for layer in self.layers.iter() {
             xs = layer.forward(&xs)?

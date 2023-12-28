@@ -26,9 +26,9 @@ cudnn = ["candle/cudnn"]
 [dependencies]
 accelerate-src = { version = "0.3", optional = true }
 intel-mkl-src = { version = "0.8", optional = true }
-candle = { package = "candle-core", git = "https://github.com/huggingface/candle.git", version = "0.3.2" }
-candle-nn = { git = "https://github.com/huggingface/candle.git", version = "0.3.2" }
-candle-transformers = { git = "https://github.com/huggingface/candle.git", version = "0.3.2" }
+candle = { package = "candle-core", version = "0.3.2" }
+candle-nn = "0.3.2"
+candle-transformers = "0.3.2"
 tokenizers = "0.15"
 anyhow = "1"
 clap = "4"
