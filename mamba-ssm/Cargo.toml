@@ -38,3 +38,10 @@ tracing-chrome = "0.7"
 tracing-subscriber = "0.3"
 tracing = "0.1"
 rand = "0.8"
+
+[dev-dependencies]
+criterion = "0.4"
+
+[[bench]]
+name = "conv1d"
+harness = false
