@@ -11,6 +11,7 @@
 use candle::{Module, Result, Tensor, D};
 use candle_nn::{RmsNorm, VarBuilder};
 
+use crate::context::Context;
 use crate::nn::selective_ssm::SSM;
 use crate::nn::{conv1d, linear_no_bias, Conv1d, Linear};
 
@@ -60,7 +61,7 @@ pub struct MambaBlock {
 }
 
 impl MambaBlock {
-    pub fn new(cfg: &Config, vb: VarBuilder) -> Result<Self> {
+    pub fn new(cfg: &Config, vb: VarBuilder, ctx: Context) -> Result<Self> {
         let d_inner = cfg.d_inner();
         let d_conv = cfg.d_conv();
 
@@ -73,8 +74,15 @@ impl MambaBlock {
             padding: d_conv - 1,
             ..Default::default()
         };
-        let conv1d = conv1d(d_inner, d_inner, d_conv, conv_cfg, vb.pp("conv1d"))?;
-        let ssm = SSM::new(d_inner, d_state, dt_rank, vb.clone())?;
+        let conv1d = conv1d(
+            d_inner,
+            d_inner,
+            d_conv,
+            conv_cfg,
+            vb.pp("conv1d"),
+            ctx.pp("conv1d"),
+        )?;
+        let ssm = SSM::new(d_inner, d_state, dt_rank, vb.clone(), ctx.pp("ssm"))?;
         let out_proj = linear_no_bias(d_inner, cfg.d_model, vb.pp("out_proj"))?;
 
         Ok(Self {
@@ -111,9 +119,9 @@ pub struct ResMambaBlock {
 }
 
 impl ResMambaBlock {
-    pub fn new(cfg: &Config, vb: VarBuilder) -> Result<Self> {
+    pub fn new(cfg: &Config, vb: VarBuilder, ctx: Context) -> Result<Self> {
         let norm = candle_nn::rms_norm(cfg.d_model, 1e-5, vb.pp("norm"))?;
-        let mixer = MambaBlock::new(cfg, vb.pp("mixer"))?;
+        let mixer = MambaBlock::new(cfg, vb.pp("mixer"), ctx.pp("mamba"))?;
         Ok(Self { mixer, norm })
     }
 }
@@ -133,12 +141,12 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn new(cfg: &Config, vb: VarBuilder) -> Result<Self> {
+    pub fn new(cfg: &Config, vb: VarBuilder, ctx: Context) -> Result<Self> {
         let embedding = candle_nn::embedding(cfg.vocab_size(), cfg.d_model, vb.pp("embedding"))?;
         let mut layers = Vec::with_capacity(cfg.n_layer);
         let vb_l = vb.pp("layers");
         for layer_idx in 0..cfg.n_layer {
-            let layer = ResMambaBlock::new(cfg, vb_l.pp(layer_idx))?;
+            let layer = ResMambaBlock::new(cfg, vb_l.pp(layer_idx), ctx.pp(layer_idx))?;
             layers.push(layer)
         }
         let norm_f = candle_nn::rms_norm(cfg.d_model, 1e-5, vb.pp("norm_f"))?;

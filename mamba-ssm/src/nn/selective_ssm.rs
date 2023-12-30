@@ -3,7 +3,10 @@ use candle_nn::VarBuilder;
 
 use candle::Result;
 
-use crate::nn::{linear, linear_no_bias, Linear};
+use crate::{
+    context::Context,
+    nn::{linear, linear_no_bias, Linear},
+};
 
 #[derive(Clone, Debug)]
 pub struct SSM {
@@ -15,12 +18,20 @@ pub struct SSM {
     x_proj: Linear,
     dt_proj: Linear,
 
+    ctx: Context,
+
     span: tracing::Span,
     iter_span: tracing::Span,
 }
 
 impl SSM {
-    pub fn new(d_inner: usize, d_state: usize, dt_rank: usize, vb: VarBuilder) -> Result<Self> {
+    pub fn new(
+        d_inner: usize,
+        d_state: usize,
+        dt_rank: usize,
+        vb: VarBuilder,
+        ctx: Context,
+    ) -> Result<Self> {
         let x_proj = linear_no_bias(d_inner, dt_rank + d_state * 2, vb.pp("x_proj"))?;
         let dt_proj = linear(dt_rank, d_inner, vb.pp("dt_proj"))?;
 
@@ -36,6 +47,8 @@ impl SSM {
             d,
             x_proj,
             dt_proj,
+
+            ctx,
 
             span,
             iter_span,
@@ -57,7 +70,10 @@ impl SSM {
 
         let mut bys = Vec::with_capacity(batch_size);
         for batch in 0..batch_size {
-            let mut x = Tensor::zeros((d_inner, d_state), delta.dtype(), delta.device())?; // h_(t-1), size (D N)
+            // Load the SSM state from the context, or initialize with 0s
+            let mut ctx = self.ctx.pp(batch);
+            let mut x = ctx.get((d_inner, d_state), "ht")?; // h_(t-1), size (D N)
+
             let mut ys = Vec::with_capacity(seq_len);
             for i in 0..seq_len {
                 let _enter_iter = self.iter_span.enter();
@@ -80,6 +96,7 @@ impl SSM {
                 let y = x.matmul(&c_i)?; // y = h_t * C (D N) x (N 1) -> (D 1)
                 ys.push((y + du_i)?)
             }
+            ctx.set("ht", x)?; // Save off the resulting SSM to the context
             let ys = Tensor::cat(&ys, 1)?; // [(D,1) x L] -> (D, L)
             bys.push(ys)
         }

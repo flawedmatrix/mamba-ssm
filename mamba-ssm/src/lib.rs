@@ -4,7 +4,7 @@ extern crate intel_mkl_src;
 #[cfg(feature = "accelerate")]
 extern crate accelerate_src;
 
-use anyhow::{Error as E, Result};
+use anyhow::{anyhow, Error as E, Result};
 
 use candle::{DType, Device, Module, Tensor};
 use candle_transformers::generation::LogitsProcessor;
@@ -16,6 +16,7 @@ use model::Model;
 mod utils;
 use utils::TokenOutputStream;
 
+pub mod context;
 pub mod nn;
 
 pub struct TextGeneration {
@@ -51,6 +52,9 @@ impl TextGeneration {
     }
 
     pub fn run(&mut self, prompt: &str, sample_len: usize) -> Result<()> {
+        if prompt.is_empty() {
+            anyhow::bail!("Prompt cannot be empty");
+        }
         use std::io::Write;
         self.tokenizer.clear();
         let mut tokens = self
@@ -60,6 +64,24 @@ impl TextGeneration {
             .map_err(E::msg)?
             .get_ids()
             .to_vec();
+
+        // Prompt processing
+        let start_process = std::time::Instant::now();
+        // Just process all but the last token of the prompt to give the model
+        // the last token to work with when generation starts
+        let (last, tokens_m1) = tokens
+            .split_last()
+            .ok_or(anyhow!("Tokens cannot be empty"))?;
+        let mut next_token = *last;
+        let input = Tensor::new(tokens_m1, &self.device)?.unsqueeze(0)?;
+        let _ = self.model.forward(&input)?;
+        let dt = start_process.elapsed();
+        let prompt_len = tokens.len() - 1;
+        println!(
+            "\n Prompt processing time ({} tokens at {:.2} token/s)",
+            prompt_len,
+            prompt_len as f64 / dt.as_secs_f64(),
+        );
         for &t in tokens.iter() {
             if let Some(t) = self.tokenizer.next_token(t)? {
                 print!("{t}")
@@ -74,7 +96,7 @@ impl TextGeneration {
         };
         let start_gen = std::time::Instant::now();
         for _ in 0..sample_len {
-            let input = Tensor::new(tokens.as_slice(), &self.device)?.unsqueeze(0)?;
+            let input = Tensor::new(&[next_token], &self.device)?.unsqueeze(0)?;
             let logits = self.model.forward(&input)?;
             let logits = logits.squeeze(0)?.squeeze(0)?.to_dtype(DType::F32)?;
             let logits = if self.repeat_penalty == 1. {
@@ -88,8 +110,9 @@ impl TextGeneration {
                 )?
             };
 
-            let next_token = self.logits_processor.sample(&logits)?;
+            next_token = self.logits_processor.sample(&logits)?;
             tokens.push(next_token);
+
             generated_tokens += 1;
             if next_token == eos_token {
                 break;

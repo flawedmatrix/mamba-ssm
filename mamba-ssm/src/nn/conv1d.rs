@@ -1,6 +1,8 @@
 use candle::{IndexOp, Module, Result, Tensor};
 use candle_nn::{Conv1dConfig, VarBuilder};
 
+use crate::context::Context;
+
 /// Faster Conv1d with some more traceability
 #[derive(Debug, Clone)]
 pub struct Conv1d {
@@ -35,6 +37,7 @@ pub fn conv1d(
     kernel_size: usize,
     cfg: Conv1dConfig,
     vs: VarBuilder,
+    ctx: Context,
 ) -> Result<Conv1d> {
     let span = tracing::span!(
         tracing::Level::TRACE,
@@ -44,7 +47,7 @@ pub fn conv1d(
         kernel_size
     );
     if in_channels == out_channels && cfg.groups == out_channels && kernel_size == 4 {
-        let inner = TCConv1d::new(in_channels, out_channels, kernel_size, cfg, vs)?;
+        let inner = TCConv1d::new(in_channels, out_channels, kernel_size, cfg, vs, ctx)?;
         Ok(Conv1d {
             inner: Conv1dImpl::TC(inner),
             span,
@@ -100,6 +103,8 @@ pub struct TCConv1d {
     gk: Tensor,
     bias: Option<Tensor>,
     cfg: Conv1dConfig,
+
+    ctx: Context,
 }
 
 impl TCConv1d {
@@ -109,6 +114,7 @@ impl TCConv1d {
         kernel_size: usize,
         cfg: Conv1dConfig,
         vb: VarBuilder,
+        ctx: Context,
     ) -> Result<Self> {
         if in_channels != cfg.groups {
             candle::bail!(
@@ -142,6 +148,7 @@ impl TCConv1d {
             gk,
             bias: Some(bs),
             cfg,
+            ctx,
         })
     }
 }
@@ -149,12 +156,22 @@ impl TCConv1d {
 impl Module for TCConv1d {
     fn forward(&self, x: &Tensor) -> Result<Tensor> {
         // Assume out_channels == in_channels
-        let (b_size, _l_in, _c_in) = x.dims3()?;
+        let (b_size, seq_len, c_in) = x.dims3()?;
 
         let batches = (0..b_size)
             .map(|i| {
                 let view = x.i((i, .., ..))?;
-                tc_conv1d(&view, self.cfg.padding, &self.at, &self.bt, &self.gk)
+                let mut ctx = self.ctx.pp(i);
+                let padding = ctx.get((self.cfg.padding, c_in), "ph")?;
+                let view = Tensor::cat(&[padding, view], 0)?;
+
+                let conv = tc_conv1d(&view, &self.at, &self.bt, &self.gk);
+
+                // Since view is [seq_len + padding, c_in], this saves off
+                // padding inputs from the end of the view
+                ctx.set("ph", view.i((seq_len.., ..))?)?;
+
+                conv
             })
             .collect::<candle::Result<Vec<_>>>()?;
         let output = Tensor::stack(&batches, 0)?;
@@ -170,23 +187,16 @@ impl Module for TCConv1d {
     }
 }
 
-/// Given an LxD tensor, applies Toom-Cook 1D convolution on it via the
-/// provided transformation matrices.
-/// groups == in_channels == /// out_channels,
-fn tc_conv1d(
-    input: &Tensor,
-    padding: usize,
-    at: &Tensor,
-    bt: &Tensor,
-    gk: &Tensor,
-) -> Result<Tensor> {
-    let view = input.pad_with_zeros(0, padding, 0)?;
-
+/// Given an (L+K-1)xD tensor, applies Toom-Cook 1D convolution on it via the
+/// provided transformation matrices, returns an LxD tensor.
+/// Assumes input is already left-padded and that
+/// groups == in_channels == out_channels
+fn tc_conv1d(input: &Tensor, at: &Tensor, bt: &Tensor, gk: &Tensor) -> Result<Tensor> {
     // TODO: Support convolutions other than F(2,4)
     let tile_size = 5;
     let tile_stride = 2;
 
-    let tiles = tile_conv_input(&view, tile_size, tile_stride)?;
+    let tiles = tile_conv_input(&input, tile_size, tile_stride)?;
     let outputs = tiles
         .iter()
         .map(|tile| {
@@ -220,6 +230,9 @@ fn tc_conv1d(
 /// stride, the last tensor view will contain the remainders.
 fn tile_conv_input(input: &Tensor, tile_size: usize, tile_stride: usize) -> Result<Vec<Tensor>> {
     let length = input.dims()[0];
+    if length < tile_size {
+        return Ok(vec![input.clone()]);
+    }
 
     let tilable_size = (length - tile_size) + tile_stride;
     let remainder = tilable_size % tile_stride;
@@ -323,7 +336,8 @@ mod tests {
         let g = Tensor::new(G, device)?;
         let gk = g.matmul(&kernels)?;
 
-        let conv_output = tc_conv1d(&x, kernel_size - 1, &at, &bt, &gk)?;
+        let x = x.pad_with_zeros(0, 3, 0)?;
+        let conv_output = tc_conv1d(&x, &at, &bt, &gk)?;
         assert_eq!(conv_output.dims(), &[seq_len, channels]);
 
         println!("Original\n{}", original_conv);

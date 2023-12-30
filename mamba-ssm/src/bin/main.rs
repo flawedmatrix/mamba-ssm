@@ -10,6 +10,7 @@ use tokenizers::Tokenizer;
 use rand::Rng;
 
 use mamba_ssm::{
+    context::Context,
     model::{Config, Model},
     TextGeneration,
 };
@@ -37,7 +38,7 @@ struct Args {
     seed: Option<u64>,
 
     /// The length of the sample to generate (in tokens).
-    #[arg(long, short = 'n', default_value_t = 50)]
+    #[arg(long, short = 'n', default_value_t = 500)]
     sample_len: usize,
 
     #[arg(long)]
@@ -111,7 +112,10 @@ fn main() -> Result<()> {
 
     let vb =
         unsafe { VarBuilder::from_mmaped_safetensors(&[weights_filename], DType::F32, &device)? };
-    let model = Model::new(&config, vb.pp("backbone"))?;
+
+    let ctx = Context::new(candle::DType::F32, &device);
+
+    let model = Model::new(&config, vb.pp("backbone"), ctx)?;
     println!("loaded the model in {:?}", start.elapsed());
 
     let seed = args.seed.unwrap_or(rand::thread_rng().gen());

@@ -1,6 +1,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 
 use candle::{Device, Module, Tensor};
+use mamba_ssm::context::Context;
 
 fn conv1d(c: &mut Criterion) {
     let device = Device::Cpu;
@@ -16,8 +17,11 @@ fn conv1d(c: &mut Criterion) {
     let var_map = candle_nn::VarMap::new();
     let vb = candle_nn::VarBuilder::from_varmap(&var_map, candle::DType::F32, &device);
 
+    let ctx = Context::new(candle::DType::F32, &device);
+    ctx.freeze();
+
     let candle_conv1d = candle_nn::conv1d(5120, 5120, 4, conv_cfg, vb.clone()).unwrap();
-    let custom_conv1d = mamba_ssm::nn::conv1d(5120, 5120, 4, conv_cfg, vb).unwrap();
+    let custom_conv1d = mamba_ssm::nn::conv1d(5120, 5120, 4, conv_cfg, vb, ctx).unwrap();
     c.bench_function("candle_nn::conv1d single batch", |b| {
         b.iter(|| candle_conv1d.forward(&x.t().unwrap()).unwrap().t().unwrap())
     });
