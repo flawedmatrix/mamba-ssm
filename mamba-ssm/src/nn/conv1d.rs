@@ -148,16 +148,15 @@ impl TCConv1d {
 impl Module for TCConv1d {
     fn forward(&self, x: &Tensor) -> Result<Tensor> {
         // Assume out_channels == in_channels
-        let (b_size, l_in, c_in) = x.dims3()?;
+        let (b_size, _l_in, _c_in) = x.dims3()?;
 
         let batches = (0..b_size)
             .map(|i| {
                 let view = x.i((i, .., ..))?;
-                let output = tc_conv1d(&view, self.cfg.padding, &self.at, &self.bt, &self.gk)?;
-                output.reshape((1, l_in, c_in))
+                tc_conv1d(&view, self.cfg.padding, &self.at, &self.bt, &self.gk)
             })
             .collect::<candle::Result<Vec<_>>>()?;
-        let output = Tensor::cat(&batches, 0)?;
+        let output = Tensor::stack(&batches, 0)?;
 
         match &self.bias {
             None => Ok(output),
