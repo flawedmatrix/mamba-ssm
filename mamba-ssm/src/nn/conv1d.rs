@@ -50,6 +50,7 @@ pub fn conv1d(
             span,
         })
     } else {
+        // TODO: Does this case still make sense to keep?
         let inner = candle_nn::conv1d(in_channels, out_channels, kernel_size, cfg, vs)?;
         Ok(Conv1d {
             inner: Conv1dImpl::Direct(inner),
@@ -179,44 +180,56 @@ fn tc_conv1d(
     bt: &Tensor,
     gk: &Tensor,
 ) -> Result<Tensor> {
-    // TODO: Support convolutions other than F(2,4)
-    let (seq_len, _) = input.dims2()?;
-    let padding = if seq_len % 2 == 1 {
-        padding + 1
-    } else {
-        padding
-    };
     let view = input.pad_with_zeros(0, padding, 0)?;
 
-    let tiles = tile_conv_input(&view, 5, 2)?;
+    // TODO: Support convolutions other than F(2,4)
+    let tile_size = 5;
+    let tile_stride = 2;
+
+    let tiles = tile_conv_input(&view, tile_size, tile_stride)?;
     let outputs = tiles
         .iter()
         .map(|tile| {
+            let (chunk_size, _) = tile.dims2()?;
+            let right_padding = tile_size - chunk_size;
+            assert!(
+                tile_stride > right_padding,
+                "conv tiling returned too small of a chunk size {chunk_size}"
+            );
+            let tile = if right_padding > 0 {
+                tile.pad_with_zeros(0, 0, right_padding)?
+            } else {
+                tile.clone()
+            };
             let btd = bt.matmul(&tile)?;
             let elemwise_prod = gk.mul(&btd)?;
-            at.matmul(&elemwise_prod)
+            let res = at.matmul(&elemwise_prod)?;
+            if right_padding > 0 {
+                res.narrow(0, 0, tile_stride - right_padding)
+            } else {
+                Ok(res)
+            }
         })
         .collect::<Result<Vec<_>>>()?;
-    let output = Tensor::cat(&outputs, 0)?;
-    if seq_len % 2 == 1 {
-        Ok(output.narrow(0, 1, seq_len)?)
-    } else {
-        Ok(output)
-    }
+    Tensor::cat(&outputs, 0)
 }
 
 /// Given a LxD tensor, returns a vec of tensor views each with length
 /// tile_size, advancing with tile_stride. Assumes input is already left-padded
-/// as desired
+/// as desired. If the input is not cleanly tilable by the tile size and tile
+/// stride, the last tensor view will contain the remainders.
 fn tile_conv_input(input: &Tensor, tile_size: usize, tile_stride: usize) -> Result<Vec<Tensor>> {
     let length = input.dims()[0];
-    if (length - tile_size) % tile_stride > 0 {
-        candle::bail!("Tensor of length {length} can't be cleanly tiled with tile_size {tile_size} and stride {tile_stride}");
-    }
-    let num_tiles = (length - tile_size) / tile_stride + 1;
+
+    let tilable_size = (length - tile_size) + tile_stride;
+    let remainder = tilable_size % tile_stride;
+    let num_tiles = tilable_size / tile_stride;
     let mut res = vec![];
     for i in 0..num_tiles {
-        res.push(input.i((2 * i..(2 * i) + tile_size, ..))?);
+        res.push(input.i((tile_stride * i..(tile_stride * i) + tile_size, ..))?);
+    }
+    if remainder > 0 {
+        res.push(input.i((tile_stride * num_tiles.., ..))?);
     }
     Ok(res)
 }
@@ -269,6 +282,7 @@ mod tests {
                 [1.7, 2.7, 3.7, 4.7, 5.7],
                 [1.8, 2.8, 3.8, 4.8, 5.8],
                 [1.9, 2.9, 3.9, 4.9, 5.9],
+                [2., 3., 4., 5., 6.],
             ],
             device,
         )?;
@@ -363,6 +377,104 @@ mod tests {
                 [1.1, 2.1, 3.1, 4.1],
                 [1.2, 2.2, 3.2, 4.2],
                 [1.3, 2.3, 3.3, 4.3],
+            ],
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_tile_conv_input_odd_size() -> candle::Result<()> {
+        // Simulate data with padding already added
+        let x = Tensor::new(
+            &[
+                [1f32, 2., 3., 4.],
+                [1.1, 2.1, 3.1, 4.1],
+                [1.2, 2.2, 3.2, 4.2],
+                [1.3, 2.3, 3.3, 4.3],
+                [1.4, 2.4, 3.4, 4.4],
+                [1.5, 2.5, 3.5, 4.5],
+                [1.6, 2.6, 3.6, 4.6],
+                [1.7, 2.7, 3.7, 4.7],
+                [1.8, 2.8, 3.8, 4.8],
+                [1.9, 2.9, 3.9, 4.9],
+                [2., 3., 4., 5.],
+            ],
+            &candle::Device::Cpu,
+        )?;
+        let x = x.pad_with_zeros(0, 3, 0)?;
+
+        let views = tile_conv_input(&x, 5, 2)?;
+
+        assert_eq!(views.len(), 6);
+        assert_eq!(
+            views[0].to_vec2::<f32>()?,
+            &[
+                [0f32, 0., 0., 0.],
+                [0., 0., 0., 0.],
+                [0., 0., 0., 0.],
+                [1., 2., 3., 4.],
+                [1.1, 2.1, 3.1, 4.1],
+            ],
+        );
+        assert_eq!(
+            views[5].to_vec2::<f32>()?,
+            &[
+                [1.7f32, 2.7, 3.7, 4.7],
+                [1.8, 2.8, 3.8, 4.8],
+                [1.9, 2.9, 3.9, 4.9],
+                [2., 3., 4., 5.],
+            ],
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_tile_conv_input_large_tile() -> candle::Result<()> {
+        // Simulate data with padding already added
+        let x = Tensor::new(
+            &[
+                [1f32, 2., 3., 4.],
+                [1.1, 2.1, 3.1, 4.1],
+                [1.2, 2.2, 3.2, 4.2],
+                [1.3, 2.3, 3.3, 4.3],
+                [1.4, 2.4, 3.4, 4.4],
+                [1.5, 2.5, 3.5, 4.5],
+                [1.6, 2.6, 3.6, 4.6],
+                [1.7, 2.7, 3.7, 4.7],
+                [1.8, 2.8, 3.8, 4.8],
+                [1.9, 2.9, 3.9, 4.9],
+            ],
+            &candle::Device::Cpu,
+        )?;
+        let x = x.pad_with_zeros(0, 3, 0)?;
+
+        let views = tile_conv_input(&x, 10, 7)?;
+
+        assert_eq!(views.len(), 2);
+        assert_eq!(
+            views[0].to_vec2::<f32>()?,
+            &[
+                [0f32, 0., 0., 0.],
+                [0., 0., 0., 0.],
+                [0., 0., 0., 0.],
+                [1., 2., 3., 4.],
+                [1.1, 2.1, 3.1, 4.1],
+                [1.2, 2.2, 3.2, 4.2],
+                [1.3, 2.3, 3.3, 4.3],
+                [1.4, 2.4, 3.4, 4.4],
+                [1.5, 2.5, 3.5, 4.5],
+                [1.6, 2.6, 3.6, 4.6],
+            ],
+        );
+        assert_eq!(
+            views[1].to_vec2::<f32>()?,
+            &[
+                [1.4f32, 2.4, 3.4, 4.4],
+                [1.5, 2.5, 3.5, 4.5],
+                [1.6, 2.6, 3.6, 4.6],
+                [1.7, 2.7, 3.7, 4.7],
+                [1.8, 2.8, 3.8, 4.8],
+                [1.9, 2.9, 3.9, 4.9],
             ],
         );
         Ok(())
