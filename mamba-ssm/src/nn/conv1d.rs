@@ -253,9 +253,10 @@ mod tests {
 
     use super::{tc_conv1d, tile_conv_input, A_T, B_T, G};
 
-    /// For some reason candle's conv1d implementation returns the wrong
-    /// output for groups > 1, so here's a reimplementation of it for
+    /// For some reason candle's conv1d implementation returns the wrong output
+    /// for groups > 1 in test so here's a reimplementation of it for
     /// c_in == groups
+    /// There doesn't seem to be a problem with it at runtime though
     fn candle_conv1d(
         input: &Tensor,
         kernel: &Tensor,
@@ -317,14 +318,6 @@ mod tests {
         let kernels_copy = kernels.unsqueeze(0)?;
         let kernel = kernels_copy.permute((2, 0, 1))?;
 
-        // TODO: There's something horribly wrong with the outer loop of
-        // conv1d for some reason, so this is replaced with another
-        // outer loop implementation.
-        // let original_conv = x_copy
-        //     .conv1d(&kernel, kernel_size - 1, 1, 1, channels)?
-        //     .narrow(candle::D::Minus1, 0, seq_len)?
-        //     .t()?
-        //     .squeeze(0)?;
         let original_conv = candle_conv1d(&x_copy, &kernel, kernel_size - 1, 1, 1, channels)?
             .narrow(candle::D::Minus1, 0, seq_len)?
             .t()?
