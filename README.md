@@ -66,7 +66,7 @@ $ cargo build --release --features mkl
 
 ### Generation speed with CPU
 
-Currently it generates at about 6.5 tokens/s with FP32 on CPU only on a M3 Max MBP.
+Currently, with the Mamba 2.8b model, it generates at about 6.5 tokens/s with FP32 on CPU only on a M3 Max MBP.
 
 ```bash
 $ target/release/mamba-cli --temperature 0 -n 50 -f prompt.txt
