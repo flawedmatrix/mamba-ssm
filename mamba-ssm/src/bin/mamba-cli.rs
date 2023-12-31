@@ -1,8 +1,8 @@
-use std::str::FromStr;
+use std::path::PathBuf;
 
 use anyhow::{Error as E, Result};
 use candle::{DType, Device};
-use clap::Parser;
+use clap::{ArgGroup, Parser};
 
 use candle_nn::VarBuilder;
 use tokenizers::Tokenizer;
@@ -17,13 +17,20 @@ use mamba_ssm::{
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
+#[clap(group(ArgGroup::new("prompt_options")
+                .required(true)
+                .args(&["prompt", "prompt_file"])
+))]
 struct Args {
     /// Enable tracing (generates a trace-timestamp.json file).
     #[arg(long)]
     tracing: bool,
 
-    #[arg(long)]
-    prompt: String,
+    #[arg(long, short = 'p')]
+    prompt: Option<String>,
+
+    #[arg(long, short = 'f')]
+    prompt_file: Option<PathBuf>,
 
     /// The temperature used to generate samples.
     #[arg(long, default_value_t = 0.7)]
@@ -41,14 +48,14 @@ struct Args {
     #[arg(long, short = 'n', default_value_t = 500)]
     sample_len: usize,
 
-    #[arg(long)]
-    tokenizer_file: Option<String>,
+    #[arg(long, default_value = "./models/tokenizer.json")]
+    tokenizer_file: PathBuf,
 
-    #[arg(long, short = 'm')]
-    weights_file: Option<String>,
+    #[arg(long, short = 'm', default_value = "./models/model.safetensors")]
+    weights_file: PathBuf,
 
-    #[arg(long, short = 'c')]
-    config_file: Option<String>,
+    #[arg(long, short = 'c', default_value = "./models/config.json")]
+    config_file: PathBuf,
 
     /// Penalty to be applied for repeating tokens, 1. means no penalty.
     #[arg(long, default_value_t = 1.1)]
@@ -90,28 +97,16 @@ fn main() -> Result<()> {
         args.temperature, args.repeat_penalty, args.repeat_last_n
     );
 
-    let tokenizer_filename = match args.tokenizer_file {
-        Some(file) => std::path::PathBuf::from(file),
-        None => std::path::PathBuf::from_str("./models/tokenizer.json")?,
-    };
-    let config_filename = match args.config_file {
-        Some(file) => std::path::PathBuf::from(file),
-        None => std::path::PathBuf::from_str("./models/config.json")?,
-    };
-    let weights_filename = match args.weights_file {
-        Some(file) => std::path::PathBuf::from(file),
-        None => std::path::PathBuf::from_str("./models/model.safetensors")?,
-    };
-    let tokenizer = Tokenizer::from_file(tokenizer_filename).map_err(E::msg)?;
+    let tokenizer = Tokenizer::from_file(args.tokenizer_file).map_err(E::msg)?;
 
     let start = std::time::Instant::now();
-    let config: Config = serde_json::from_slice(&std::fs::read(config_filename)?)?;
+    let config: Config = serde_json::from_slice(&std::fs::read(args.config_file)?)?;
 
     // TODO: Implement GPU-based inference
     let device = Device::Cpu;
 
     let vb =
-        unsafe { VarBuilder::from_mmaped_safetensors(&[weights_filename], DType::F32, &device)? };
+        unsafe { VarBuilder::from_mmaped_safetensors(&[args.weights_file], DType::F32, &device)? };
 
     let ctx = Context::new(candle::DType::F32, &device);
 
@@ -120,6 +115,12 @@ fn main() -> Result<()> {
 
     let seed = args.seed.unwrap_or(rand::thread_rng().gen());
     println!("generating {} tokens with seed {seed}", args.sample_len);
+
+    let prompt = if args.prompt.is_some() {
+        args.prompt.unwrap()
+    } else {
+        std::fs::read_to_string(args.prompt_file.unwrap())?
+    };
 
     let mut pipeline = TextGeneration::new(
         model,
@@ -131,6 +132,6 @@ fn main() -> Result<()> {
         args.repeat_last_n,
         &device,
     );
-    pipeline.run(&args.prompt, args.sample_len)?;
+    pipeline.run(&prompt, args.sample_len)?;
     Ok(())
 }
