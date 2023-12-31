@@ -37,8 +37,8 @@ struct Args {
     temperature: f64,
 
     /// Nucleus sampling probability cutoff.
-    #[arg(long)]
-    top_p: Option<f64>,
+    #[arg(long, default_value_t = 0.92)]
+    top_p: f64,
 
     /// The seed to use when generating random samples.
     #[arg(long)]
@@ -62,7 +62,7 @@ struct Args {
     repeat_penalty: f32,
 
     /// The context size to consider for the repeat penalty.
-    #[arg(long, default_value_t = 64)]
+    #[arg(long, default_value_t = 320)]
     repeat_last_n: usize,
 }
 
@@ -93,8 +93,8 @@ fn main() -> Result<()> {
         candle::utils::has_mkl()
     );
     println!(
-        "temp: {:.2} repeat-penalty: {:.2} repeat-last-n: {}",
-        args.temperature, args.repeat_penalty, args.repeat_last_n
+        "temp: {:.2} top-p: {:.2} repeat-penalty: {:.2} repeat-last-n: {}",
+        args.temperature, args.top_p, args.repeat_penalty, args.repeat_last_n
     );
 
     let tokenizer = Tokenizer::from_file(args.tokenizer_file).map_err(E::msg)?;
@@ -131,7 +131,7 @@ fn main() -> Result<()> {
         tokenizer,
         seed,
         Some(args.temperature),
-        args.top_p,
+        Some(args.top_p),
         args.repeat_penalty,
         args.repeat_last_n,
         &device,
