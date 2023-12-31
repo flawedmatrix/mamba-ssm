@@ -40,17 +40,17 @@ framework.
 3. Install Rust (https://www.rust-lang.org/), then run
 ```bash
 $ cargo build --release
-$ targets/release/mamba-cli --prompt "Mamba is the"
+$ target/release/mamba-cli --prompt "Mamba is the"
 ```
 
 You can also specify the model and config.json used by passing flags:
 ```bash
-targets/release/mamba-cli -m models/mamba-2.8b-slimpj/model.safetensors -c models/mamba-2.8b-slimpj/config.json -prompt "Mamba is the"
+target/release/mamba-cli -m models/mamba-2.8b-slimpj/model.safetensors -c models/mamba-2.8b-slimpj/config.json -prompt "Mamba is the"
 ```
 
 For other usage options such as passing the prompt by file, see the usage:
 ```bash
-$ targets/release/mamba-cli --help
+$ target/release/mamba-cli --help
 ```
 
 ### Building with Apple Accelerate Framework support
