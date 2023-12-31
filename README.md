@@ -48,6 +48,11 @@ You can also specify the model and config.json used by passing flags:
 targets/release/mamba-cli -m models/mamba-2.8b-slimpj/model.safetensors -c models/mamba-2.8b-slimpj/config.json -prompt "Mamba is the"
 ```
 
+For other usage options such as passing the prompt by file, see the usage:
+```bash
+$ targets/release/mamba-cli --help
+```
+
 ### Building with Apple Accelerate Framework support
 ```bash
 $ cargo build --release --features accelerate
@@ -56,4 +61,32 @@ $ cargo build --release --features accelerate
 ### Building with Intel MKL framework support
 ```bash
 $ cargo build --release --features mkl
+```
+
+### Generation speed with CPU
+
+Currently it generates at about 6.5 tokens/s with FP32 on CPU only on a M3 Max MBP.
+
+```bash
+$ target/release/mamba-cli --temperature 0 -n 50 -f prompt.txt
+avx: false, neon: true, simd128: false, f16c: false, num_threads: 16, cuda: false, metal: false, accelerate: true, mkl: false
+temp: 0.00 repeat-penalty: 1.10 repeat-last-n: 64
+loaded the model in 1.605674125s
+generating 50 tokens with seed 16889006583945703583
+
+ Prompt processing time (98 tokens at 24.68 token/s)
+I am that merry wanderer of the night.
+I jest to Oberon and make him smile
+When I a fat and bean-fed horse beguile,
+Neighing in likeness of a filly foal:
+And sometime lurk I in a gossip’s bowl,
+In very likeness of a roasted crab,
+And when she drinks, against her lips I bob
+And on her wither’d dewlap pour the ale.
+I am that merry jester of the night;
+When he is sick and sad, I make him smile:
+If his wife be angry with him, then I
+Make him laugh, as if a fool were free.
+But when she
+50 tokens generated (6.50 token/s)
 ```
