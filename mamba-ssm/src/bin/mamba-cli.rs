@@ -103,7 +103,11 @@ fn main() -> Result<()> {
     let config: Config = serde_json::from_slice(&std::fs::read(args.config_file)?)?;
 
     // TODO: Implement GPU-based inference
-    let device = Device::Cpu;
+    let device = if candle::utils::cuda_is_available() {
+        Device::cuda_if_available(0)?
+    } else {
+        Device::Cpu
+    };
 
     let vb =
         unsafe { VarBuilder::from_mmaped_safetensors(&[args.weights_file], DType::F32, &device)? };

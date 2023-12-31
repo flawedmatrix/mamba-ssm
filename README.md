@@ -23,7 +23,8 @@ framework.
   - It probably works, but I haven't tested it yet
 - [ ] Metal
   - It does speed up inference by a lot, but the output is garbage. Probably because implementation in candle isn't stable yet.
-- [ ] CUDA
+- [x] CUDA (via `features cuda`)
+  - It works but no optimization was done for CUDA yet.
 
 ### Supported Features
 
