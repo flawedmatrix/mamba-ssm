@@ -1,3 +1,4 @@
 /target
-/models
+/models/*.safetensors
+/models/*.json
 trace-*.json

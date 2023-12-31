@@ -44,10 +44,10 @@ struct Args {
     #[arg(long)]
     tokenizer_file: Option<String>,
 
-    #[arg(long)]
+    #[arg(long, short = 'm')]
     weights_file: Option<String>,
 
-    #[arg(long)]
+    #[arg(long, short = 'c')]
     config_file: Option<String>,
 
     /// Penalty to be applied for repeating tokens, 1. means no penalty.
