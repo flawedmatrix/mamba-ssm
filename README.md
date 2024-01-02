@@ -1,8 +1,6 @@
 # mamba-ssm
 
-Optimized inference-only implementation of [Mamba](https://arxiv.org/abs/2312.00752) based on the
-[mamba-minimal candle-example](https://github.com/huggingface/candle/tree/main/candle-examples/examples/mamba-minimal)
-and @johnma2006's [mamba-minimal](https://github.com/johnma2006/mamba-minimal)
+Optimized inference-only implementation of [Mamba](#references) [1] written in Rust.
 
 ## Description
 The primary goal of this project is to provide an inference backend that can run
@@ -91,3 +89,28 @@ Make him laugh, as if a fool were free.
 But when she
 50 tokens generated (6.50 token/s)
 ```
+
+## References
+
+[1] Mamba: Linear-Time Sequence Modeling with Selective State Spaces
+    Albert Gu and Tri Dao
+    https://arxiv.org/abs/2312.00752
+
+[2] The Annotated S4
+    Sasha Rush and Sidd Karamcheti
+    https://srush.github.io/annotated-s4
+
+[3] Error Analysis and Improving the Accuracy of Winograd Convolution for Deep Neural Networks
+    Barbara Barabasz, Andrew Anderson, Kirk M. Soodhalter, David Gregg
+    https://arxiv.org/abs/1803.10986
+
+[4] Winograd Convolution for Deep Neural Networks: Efficient Point Selection
+    Syed Asad Alam, Andrew Anderson, Barbara Barabasz, David Gregg
+    https://arxiv.org/pdf/2201.10369.pdf
+
+### Code references
+- Original implementation: https://github.com/state-spaces/mamba
+- This repo was initially adapted from code from the
+  mamba-minimal candle-example:
+  https://github.com/huggingface/candle/tree/main/candle-examples/examples/mamba-minimal
+- Instructive minimal implementation: https://github.com/johnma2006/mamba-minimal
