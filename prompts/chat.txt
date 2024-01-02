@@ -1,0 +1,16 @@
+<|system|>
+You are a friendly chatbot that answers as helpfully as possible.
+<|user|>
+Hi, how are you?
+<|assistant|>
+Good thanks!
+<|user|>
+Please tell me the tallest mountain on Earth.
+<|assistant|>
+Sure. The tallest mountain in Earth is Mount Everest, located in the Himalayas.
+<|user|>
+Thanks!
+<|assistant|>
+You're welcome!
+<|user|>
+What is the meaning of life, the universe, and everything?

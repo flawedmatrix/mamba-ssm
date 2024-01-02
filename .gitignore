@@ -1,4 +1,4 @@
 /target
-/models/*.safetensors
-/models/*.json
+/models/**/*.safetensors
+/models/**/*.json
 trace-*.json
