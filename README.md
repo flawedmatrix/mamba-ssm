@@ -77,7 +77,7 @@ temp: 0.00 repeat-penalty: 1.10 repeat-last-n: 64
 loaded the model in 1.605674125s
 generating 50 tokens with seed 16889006583945703583
 
- Prompt processing time (98 tokens at 24.68 token/s)
+Prompt processing time (98 tokens at 24.68 token/s)
 I am that merry wanderer of the night.
 I jest to Oberon and make him smile
 When I a fat and bean-fed horse beguile,
@@ -96,19 +96,19 @@ But when she
 
 ## References
 
-[1] Mamba: Linear-Time Sequence Modeling with Selective State Spaces
+[1] "Mamba: Linear-Time Sequence Modeling with Selective State Spaces"
     Albert Gu and Tri Dao
     https://arxiv.org/abs/2312.00752
 
-[2] The Annotated S4
+[2] "The Annotated S4"
     Sasha Rush and Sidd Karamcheti
     https://srush.github.io/annotated-s4
 
-[3] Error Analysis and Improving the Accuracy of Winograd Convolution for Deep Neural Networks
+[3] "Error Analysis and Improving the Accuracy of Winograd Convolution for Deep Neural Networks"
     Barbara Barabasz, Andrew Anderson, Kirk M. Soodhalter, David Gregg
     https://arxiv.org/abs/1803.10986
 
-[4] Winograd Convolution for Deep Neural Networks: Efficient Point Selection
+[4] "Winograd Convolution for Deep Neural Networks: Efficient Point Selection"
     Syed Asad Alam, Andrew Anderson, Barbara Barabasz, David Gregg
     https://arxiv.org/pdf/2201.10369.pdf
 

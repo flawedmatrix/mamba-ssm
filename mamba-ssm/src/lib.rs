@@ -78,7 +78,7 @@ impl TextGeneration {
         let dt = start_process.elapsed();
         let prompt_len = tokens.len() - 1;
         println!(
-            "\n Prompt processing time ({} tokens at {:.2} token/s)",
+            "\nPrompt processing time ({} tokens at {:.2} token/s)",
             prompt_len,
             prompt_len as f64 / dt.as_secs_f64(),
         );
