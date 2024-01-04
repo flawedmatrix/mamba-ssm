@@ -33,40 +33,44 @@ framework.
 
 ## Getting Started
 
-1. Prepare a Mamba safetensors model, config.json, and tokenizer.json.
-   - For example [mamba-2.8b-slimpj](https://huggingface.co/state-spaces/mamba-2.8b-slimpj/tree/refs%2Fpr%2F1) and the tokenizer from [gpt-neox-20b](https://huggingface.co/EleutherAI/gpt-neox-20b/blob/main/tokenizer.json)
-2. Move these three files into the `models` folder.
-3. Install Rust (https://www.rust-lang.org/), then run
+1. Prepare a Mamba safetensors model, config.json, and tokenizer.json and move these to the `/.models` directory.
+   - Run `./download.sh` to download [mamba-2.8b-slimpj](https://huggingface.co/state-spaces/mamba-2.8b-slimpj/tree/refs%2Fpr%2F1) and the tokenizer from [gpt-neox-20b](https://huggingface.co/EleutherAI/gpt-neox-20b/blob/main/tokenizer.json)
+2. [Install Rust](https://www.rust-lang.org), then run:
+
 ```bash
-$ cargo build --release
-$ target/release/mamba-cli --prompt "Mamba is the"
+cargo build --release
+target/release/mamba-cli --prompt "Mamba is the"
 ```
 
 You can also specify the model and config.json used by passing flags:
+
 ```bash
 target/release/mamba-cli -m models/mamba-2.8b-slimpj/model.safetensors -c models/mamba-2.8b-slimpj/config.json -prompt "Mamba is the"
 ```
 
 For other usage options such as passing the prompt by file, see the usage:
+
 ```bash
-$ target/release/mamba-cli --help
+target/release/mamba-cli --help
 ```
 
 ### Building with Apple Accelerate Framework support
+
 ```bash
-$ cargo build --release --features accelerate
+cargo build --release --features accelerate
 ```
 
 ### Building with Intel MKL framework support
+
 ```bash
-$ cargo build --release --features mkl
+cargo build --release --features mkl
 ```
 
 ### Generation speed with CPU
 
 Currently, with the Mamba 2.8b model, it generates at about 6.5 tokens/s with FP32 on CPU only on a M3 Max MBP.
 
-```
+```bash
 $ target/release/mamba-cli --temperature 0 -n 50 -f prompt.txt
 avx: false, neon: true, simd128: false, f16c: false, num_threads: 16, cuda: false, metal: false, accelerate: true, mkl: false
 temp: 0.00 repeat-penalty: 1.10 repeat-last-n: 64
