@@ -129,11 +129,13 @@ impl TCConv1d {
         // Change the kernel's layout to be (kernel_size, channels)
         let kernel = ws.permute((1, 2, 0))?.squeeze(0)?;
 
-        let at = Tensor::new(A_T, vb.device())?;
-        let bt = Tensor::new(B_T, vb.device())?;
+        let dtype = ws.dtype();
+
+        let at = Tensor::new(A_T, vb.device())?.to_dtype(dtype)?;
+        let bt = Tensor::new(B_T, vb.device())?.to_dtype(dtype)?;
         // Save the result of multiplying G and the stack of kernels since we
         // don't need to use the kernel weights directly anymore
-        let g = Tensor::new(G, vb.device())?;
+        let g = Tensor::new(G, vb.device())?.to_dtype(dtype)?;
         let gk = g.matmul(&kernel)?;
 
         let init_bs = candle_nn::Init::Uniform {

@@ -107,10 +107,11 @@ impl SSM {
 impl Module for SSM {
     fn forward(&self, xs: &Tensor) -> Result<Tensor> {
         let _enter = self.span.enter();
+        let dtype = self.ctx.dtype();
 
         let (_d_in, n) = self.a_log.dims2()?;
-        let a = self.a_log.to_dtype(candle::DType::F32)?.exp()?.neg()?;
-        let d = self.d.to_dtype(candle::DType::F32)?;
+        let a = self.a_log.to_dtype(dtype)?.exp()?.neg()?;
+        let d = self.d.to_dtype(dtype)?;
         let x_dbl = xs.apply(&self.x_proj)?;
 
         let delta = x_dbl.narrow(D::Minus1, 0, self.dt_rank)?;

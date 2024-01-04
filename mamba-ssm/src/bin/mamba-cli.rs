@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, thread::sleep, time::Duration};
 
 use anyhow::{Error as E, Result};
 use candle::{DType, Device};
@@ -64,6 +64,10 @@ struct Args {
     /// The context size to consider for the repeat penalty.
     #[arg(long, default_value_t = 320)]
     repeat_last_n: usize,
+
+    /// Use BF16 floating point format for calculations instead of F32. CUDA only.
+    #[arg(long)]
+    bf16: bool,
 }
 
 fn main() -> Result<()> {
@@ -109,10 +113,11 @@ fn main() -> Result<()> {
         Device::Cpu
     };
 
-    let vb =
-        unsafe { VarBuilder::from_mmaped_safetensors(&[args.weights_file], DType::F32, &device)? };
+    let dtype = if args.bf16 { DType::BF16 } else { DType::F32 };
 
-    let ctx = Context::new(candle::DType::F32, &device);
+    let vb = unsafe { VarBuilder::from_mmaped_safetensors(&[args.weights_file], dtype, &device)? };
+
+    let ctx = Context::new(dtype, &device);
 
     let model = Model::new(&config, vb.pp("backbone"), ctx)?;
     println!("loaded the model in {:?}", start.elapsed());
