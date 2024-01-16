@@ -43,5 +43,16 @@ rand = "0.8"
 criterion = "0.4"
 
 [[bench]]
-name = "conv1d"
+name = "conv1d_bench"
+path = "benches/conv1d.rs"
+harness = false
+
+[[bench]]
+name = "elemwise_bench"
+path = "benches/elemwise.rs"
+harness = false
+
+[[bench]]
+name = "linear_bench"
+path = "benches/linear.rs"
 harness = false

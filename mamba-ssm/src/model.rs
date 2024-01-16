@@ -150,7 +150,7 @@ impl Model {
             layers.push(layer)
         }
         let norm_f = candle_nn::rms_norm(cfg.d_model, 1e-5, vb.pp("norm_f"))?;
-        let lm_head = Linear::from_weights(embedding.embeddings().clone(), None);
+        let lm_head = Linear::from_weights(embedding.embeddings().clone(), None)?;
         Ok(Self {
             embedding,
             layers,
