@@ -1,10 +1,9 @@
 use candle::{Module, Result, Tensor};
 use candle_nn::VarBuilder;
 
-/// Linear with improved speed and some more traceability.
+/// Linear with some more traceability.
 /// The layer applies a linear transformation to the incoming data,
-/// `y = x@w.t() + b` with an optional bias. However, the weights are
-/// pre-transposed upon creation of the layer.
+/// `y = x@w.t() + b` with an optional bias.
 #[derive(Debug, Clone)]
 pub struct Linear {
     inner: LinearInner,
@@ -66,8 +65,7 @@ impl Module for Linear {
     }
 }
 
-/// LinearInner is basically the same as candle_nn::Linear except the weights
-/// are transposed on creation instead of every forward iteration
+/// LinearInner is basically the same as candle_nn::Linear
 #[derive(Clone, Debug)]
 struct LinearInner {
     weight: Tensor,
@@ -76,18 +74,15 @@ struct LinearInner {
 
 impl LinearInner {
     fn new(weight: Tensor, bias: Option<Tensor>) -> Result<Self> {
-        Ok(Self {
-            weight: weight.t()?.contiguous()?,
-            bias,
-        })
+        Ok(Self { weight, bias })
     }
 }
 
 impl Module for LinearInner {
     fn forward(&self, x: &Tensor) -> Result<Tensor> {
         let x = match *x.dims() {
-            [b1, b2, _, _] => x.matmul(&self.weight.broadcast_left((b1, b2))?)?,
-            [bsize, _, _] => x.matmul(&self.weight.broadcast_left(bsize)?)?,
+            [b1, b2, _, _] => x.matmul(&self.weight.broadcast_left((b1, b2))?.t()?)?,
+            [bsize, _, _] => x.matmul(&self.weight.broadcast_left(bsize)?.t()?)?,
             _ => x.matmul(&self.weight)?,
         };
         match &self.bias {
