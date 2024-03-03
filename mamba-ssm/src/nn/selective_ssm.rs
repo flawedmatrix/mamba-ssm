@@ -12,7 +12,7 @@ use crate::{
 pub struct SSM {
     dt_rank: usize,
 
-    a_log: Tensor,
+    a: Tensor,
     d: Tensor,
 
     x_proj: Linear,
@@ -38,12 +38,17 @@ impl SSM {
         let a_log = vb.get((d_inner, d_state), "A_log")?;
         let d = vb.get(d_inner, "D")?;
 
+        let dtype = ctx.dtype();
+
+        let a = a_log.to_dtype(dtype)?.exp()?.neg()?;
+        let d = d.to_dtype(dtype)?;
+
         let span = tracing::span!(tracing::Level::TRACE, "SSM", d_inner, d_state, dt_rank);
         let iter_span = tracing::span!(tracing::Level::TRACE, "iter");
 
         Ok(Self {
             dt_rank,
-            a_log,
+            a,
             d,
             x_proj,
             dt_proj,
@@ -59,14 +64,15 @@ impl SSM {
         &self,
         u: &Tensor,     // The input (batch_size, seq_len, d_inner) aka (B L D)
         delta: &Tensor, // (batch_size, seq_len, d_inner) aka (B L D)
-        a: &Tensor,     // (d_inner, d_state) aka (D N)
         b: &Tensor,     // (batch_size, seq_len, d_state) aka (B L N)
         c: &Tensor,     // (batch_size, seq_len, d_state) aka (B L N)
-        d: &Tensor,     // (d_inner) aka (D)
     ) -> Result<Tensor> {
         let (batch_size, seq_len, d_inner) = u.dims3()?;
+
+        let a = &self.a; // (d_inner, d_state) aka (D N)
         let d_state = a.dim(1)?;
-        let d = d.unsqueeze(1)?;
+
+        let d = self.d.unsqueeze(1)?; // (d_inner) aka (D) -> (D 1)
 
         let mut bys = Vec::with_capacity(batch_size);
         for batch in 0..batch_size {
@@ -107,11 +113,9 @@ impl SSM {
 impl Module for SSM {
     fn forward(&self, xs: &Tensor) -> Result<Tensor> {
         let _enter = self.span.enter();
-        let dtype = self.ctx.dtype();
 
-        let (_d_in, n) = self.a_log.dims2()?;
-        let a = self.a_log.to_dtype(dtype)?.exp()?.neg()?;
-        let d = self.d.to_dtype(dtype)?;
+        let (_d_in, n) = self.a.dims2()?;
+
         let x_dbl = xs.apply(&self.x_proj)?;
 
         let delta = x_dbl.narrow(D::Minus1, 0, self.dt_rank)?;
@@ -121,7 +125,7 @@ impl Module for SSM {
         let delta = delta.contiguous()?.apply(&self.dt_proj)?;
         // softplus without threshold
         let delta = (delta.exp()? + 1.)?.log()?;
-        let ss = self.selective_scan(xs, &delta, &a, &b, &c, &d)?;
+        let ss = self.selective_scan(xs, &delta, &b, &c)?;
         Ok(ss)
     }
 }
