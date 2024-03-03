@@ -23,12 +23,13 @@ mkl = [
 cuda = ["candle/cuda", "candle-nn/cuda", "candle-transformers/cuda"]
 cudnn = ["candle/cudnn"]
 
+
 [dependencies]
 accelerate-src = { version = "0.3", optional = true }
 intel-mkl-src = { version = "0.8", optional = true }
-candle = { package = "candle-core", version = "0.3.2" }
-candle-nn = "0.3.2"
-candle-transformers = "0.3.2"
+candle = { package = "candle-core", version = "0.4.1" }
+candle-nn = "0.4.1"
+candle-transformers = "0.4.1"
 tokenizers = "0.15"
 anyhow = "1"
 clap = "4"
@@ -38,6 +39,7 @@ tracing-chrome = "0.7"
 tracing-subscriber = "0.3"
 tracing = "0.1"
 rand = "0.8"
+rayon = "1.8"
 
 [dev-dependencies]
 criterion = "0.4"
