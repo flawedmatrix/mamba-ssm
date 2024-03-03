@@ -18,6 +18,7 @@ use utils::TokenOutputStream;
 
 pub mod context;
 pub mod nn;
+pub mod ops;
 
 pub struct TextGeneration {
     model: Model,
