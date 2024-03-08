@@ -22,6 +22,7 @@ mkl = [
 ]
 cuda = ["candle/cuda", "candle-nn/cuda", "candle-transformers/cuda"]
 cudnn = ["candle/cudnn"]
+metal = ["candle/metal", "candle-nn/metal"]
 
 
 [dependencies]
@@ -30,6 +31,7 @@ intel-mkl-src = { version = "0.8", optional = true }
 candle = { package = "candle-core", version = "0.4.1" }
 candle-nn = "0.4.1"
 candle-transformers = "0.4.1"
+candle-metal-kernels = "0.4.1"
 tokenizers = "0.15"
 anyhow = "1"
 clap = "4"

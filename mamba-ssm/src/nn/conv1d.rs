@@ -53,7 +53,6 @@ pub fn conv1d(
             span,
         })
     } else {
-        // TODO: Does this case still make sense to keep?
         let inner = candle_nn::conv1d(in_channels, out_channels, kernel_size, cfg, vs)?;
         Ok(Conv1d {
             inner: Conv1dImpl::Direct(inner),

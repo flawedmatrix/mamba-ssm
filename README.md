@@ -19,8 +19,7 @@ framework.
 - [x] Accelerate framework (via `--features accelerate`)
 - [ ] Intel MKL (via `features mkl`)
   - It probably works, but I haven't tested it yet
-- [ ] Metal
-  - It does speed up inference by a lot, but the output is garbage. Probably because implementation in candle isn't stable yet.
+- [x] Metal
 - [x] CUDA (via `features cuda`)
   - It works but no optimization was done for CUDA yet.
 

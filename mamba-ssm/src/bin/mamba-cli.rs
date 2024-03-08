@@ -109,6 +109,8 @@ fn main() -> Result<()> {
     // TODO: Implement GPU-based inference
     let device = if candle::utils::cuda_is_available() {
         Device::cuda_if_available(0)?
+    } else if candle::utils::metal_is_available() {
+        Device::new_metal(0)?
     } else {
         Device::Cpu
     };
