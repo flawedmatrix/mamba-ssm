@@ -20,13 +20,15 @@ framework.
 - [ ] Intel MKL (via `features mkl`)
   - It probably works, but I haven't tested it yet
 - [x] Metal
+  - Still relatively unoptimized
 - [x] CUDA (via `features cuda`)
   - It works but no optimization was done for CUDA yet.
 
 ### Supported Features
 
 - [x] Inference via CLI
-- [ ] FP16 support (coming soon)
+- [x] BF16 (CUDA only)
+- [ ] FP16 support
 - [ ] Quantized models
 - [ ] Web interface for inference
 
